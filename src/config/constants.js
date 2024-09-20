@@ -3,4 +3,5 @@ export const ORMS = {
     PRISMA: 'prisma'
 };
 
-export const nameFunctions = [ 'findOne', 'findAll', 'create', 'update', 'delete'];
+export const nameFunctions = [ 
+    'findOne', 'findByPk', 'findAll', 'create', 'update', 'delete'];
