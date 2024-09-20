@@ -1,4 +1,4 @@
-import { nameFunctions } from "../config/constants";
+import { nameFunctions } from "../config/constants.js";
 
 export function sequelizeHelper({ 
     dbInstance,
@@ -13,31 +13,39 @@ export function sequelizeHelper({
     }
     
     const functions = {
-      findOne: async(query, unscoped = false) => {
+      findOne: async(query) => {
         try {
-          if(unscoped){
-            return await dbInstance.unscoped().findOne({ where: query });
-          } else {
-            return await dbInstance.findOne({ where: query });
-          }
+          return await dbInstance.findOne({ where: query });
         } catch (error) {
           throw new Error(`Erro ao buscar registro: ${error.message}`);
         }
       },
-      findByPk: async(primaryKey) => {
+      findByPk: async(req) => {
         try {
-          return await dbInstance.findByPk(primaryKey);
+          const { id } = req.params;
+          return await dbInstance.findByPk(id);
         } catch (error) {
           throw new Error(`Erro ao buscar registro: ${error.message}`);
         }
       },
-      findAll: async (query = {}, unscoped = false) => {
+      findAll: async (req, query = {}) => {
         try {
-          if(unscoped){
-            return await dbInstance.unscoped().findAll({ where: query });
-          } else {
-            return await dbInstance.findAll({ where: query });
-          }
+          const limit = Number(req.query.pageLimit) || 20;
+          const page = Number(req.query.page) || 1;
+          const offset = (page - 1) * limit;
+
+          const results = await dbInstance.findAndCountAll({
+            ...query,
+            limit: limit, 
+            offset: offset,
+          });
+      
+          return {
+            rows: results.rows,
+            currentPage: page,
+            totalItems: results.count,
+            totalPages: Math.ceil(results.count / limit)
+          };
         } catch (error) {
           throw new Error(`Erro ao buscar todos os registros: ${error.message}`);
         }
@@ -49,9 +57,12 @@ export function sequelizeHelper({
           throw new Error(`Erro ao criar o registro: ${error.message}`);
         }
       },
-      update: async (query, data)=>{
+      update: async (req, query = {}, data)=>{
         try {
-          const [updated] = await dbInstance.update(data, { where: query });
+          const [updated] = await dbInstance.update(
+            data, 
+            {...query}
+          );
           if (!updated) {
             throw new Error('Registro não encontrado ou dados não alterados');
           }
